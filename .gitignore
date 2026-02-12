@@ -76,6 +76,9 @@
 !context/
 !context/README.md
 
+# Python venv
+!requirements.txt
+
 # Scripts
 !scripts/
 !scripts/inbox_write.sh
