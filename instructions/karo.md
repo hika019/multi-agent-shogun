@@ -249,8 +249,9 @@ Before assigning tasks, ask yourself these five questions:
 | 壱 | **Purpose** | Read cmd's `purpose` and `acceptance_criteria`. These are the contract. Every subtask must trace back to at least one criterion. |
 | 弐 | **Decomposition** | How to split for maximum efficiency? Parallel possible? Dependencies? |
 | 参 | **Headcount** | How many ashigaru? Split across as many as possible. Don't be lazy. |
-| 四 | **Perspective** | What persona/scenario is effective? What expertise needed? |
-| 伍 | **Risk** | RACE-001 risk? Ashigaru availability? Dependency ordering? |
+| 四 | **Model** | Sonnetで回せる粒度か？L4+ならSonnet化チェックを実施。分割・テンプレで回せるならSonnet。事前判断が全て。 |
+| 伍 | **Perspective** | What persona/scenario is effective? What expertise needed? |
+| 六 | **Risk** | RACE-001 risk? Ashigaru availability? Dependency ordering? |
 
 **Do**: Read `purpose` + `acceptance_criteria` → design execution to satisfy ALL criteria.
 **Don't**: Forward shogun's instruction verbatim. That's karo's disgrace (家老の名折れ).
@@ -693,19 +694,60 @@ tmux list-panes -t multiagent:agents -F '#{pane_index}' -f '#{==:#{@agent_id},as
 
 ### Bloom Level → Model Mapping
 
-**⚠️ If ANY part of the task is L4+, use Opus. When in doubt, use Opus.**
+**原則: Sonnet主戦力。Opusは「Sonnetでは無理」と事前判断した場合のみ。**
+**「Sonnetで失敗→Opusでリトライ」は原則避ける（トークン二重消費）。事前判断が核心。**
 
-| Question | Level | Model |
-|----------|-------|-------|
-| "Just searching/listing?" | L1 Remember | Sonnet |
-| "Explaining/summarizing?" | L2 Understand | Sonnet |
-| "Applying known pattern?" | L3 Apply | Sonnet |
-| **— Sonnet / Opus boundary —** | | |
-| "Investigating root cause/structure?" | L4 Analyze | **Opus** |
-| "Comparing options/evaluating?" | L5 Evaluate | **Opus** |
-| "Designing/creating something new?" | L6 Create | **Opus** |
+| Level | 内容 | 判定 |
+|-------|------|------|
+| L1 Remember | 検索・一覧 | Sonnet |
+| L2 Understand | 説明・要約 | Sonnet |
+| L3 Apply | 既知パターン適用 | Sonnet |
+| L4 Analyze | 構造調査・原因分析 | **下記チェック** |
+| L5 Evaluate | 比較・評価 | **下記チェック** |
+| L6 Create | 新規設計 | **下記チェック** |
 
-**L3/L4 boundary**: Does a procedure/template exist? YES = L3 (Sonnet). NO = L4 (Opus).
+### L4-L6 Sonnet化チェック（Opus割当前に必ず実施）
+
+L4+タスクを見たら、即Opusに振る前に以下を確認：
+
+| チェック | YES→Sonnet | NO→Opus |
+|---------|-----------|---------|
+| L2-L3の複数ステップに分割できるか？ | 分割してSonnetに並列投入 | 分割不能ならOpus |
+| テンプレート・手順書を与えれば回るか？ | テンプレ付きでSonnetに | 前例なしならOpus |
+| 判断基準を明示できるか？ | 基準明示でSonnetに | 暗黙知が必要ならOpus |
+| コンテキストを十分に提供できるか？ | 参照ファイル指定でSonnetに | 自力探索が必要ならOpus |
+
+**Opusが真に必要なケース**:
+- 前例のない新規アーキテクチャ設計
+- 複数ファイルにまたがる全体整合性の判断
+- 暗黙知・ドメイン専門性が不可欠な評価
+- 分割すると情報が欠落する一体不可分なタスク
+
+### Sonnet向けタスク設計ガイドライン
+
+Sonnetの性能を最大化するタスクYAMLの書き方:
+
+1. **明示的ステップ**: 「〇〇を調べて判断せよ」ではなく「①〇〇を読め ②△△を確認せよ ③結果をXX形式で書け」
+2. **出力テンプレ**: 期待するファイル構造・セクション構成を具体的に指定
+3. **参照ファイル**: `target_path` + 関連ファイルパスを全て明記（Sonnetに探させない）
+4. **判断基準**: 「良いコードを書け」ではなく「clippy警告0、テスト全pass、pub関数にdocstring」
+5. **スコープ限定**: 1タスク1目的。複合目的は分割
+
+```yaml
+# ❌ Sonnetに曖昧すぎる
+description: "API設計を検討してドキュメントを書け"
+
+# ✅ Sonnetで回せる
+description: |
+  以下の手順でAPI設計ドキュメントを作成せよ。
+  1. src/lib.rs の pub 関数一覧を抽出
+  2. 各関数のシグネチャ・用途を表形式でまとめる
+  3. docs/api_reference.md に以下の構造で出力:
+     - ## 概要（1-2文）
+     - ## 関数一覧（表）
+     - ## 使用例（各関数1例）
+  参照: src/lib.rs, src/problem.rs, src/solver.rs
+```
 
 ### Dynamic Model Switching via `/model`
 
@@ -718,8 +760,8 @@ tmux set-option -p -t multiagent:0.{N} @model_name '<DisplayName>'
 
 | Direction | Condition | Action |
 |-----------|-----------|--------|
-| Sonnet→Opus (promote) | Bloom L4+ AND all Opus ashigaru busy | `/model opus`, `@model_name` → `Opus` |
-| Opus→Sonnet (demote) | Bloom L1-L3 task | `/model sonnet`, `@model_name` → `Sonnet` |
+| Sonnet→Opus (promote) | L4+でSonnet化チェック全NOかつOpus足軽全busy | `/model opus`, `@model_name` → `Opus` |
+| Opus→Sonnet (demote) | L1-L3タスク or Sonnet化チェックでYESあり | `/model sonnet`, `@model_name` → `Sonnet` |
 
 **YAML tracking**: Add `model_override: opus` or `model_override: sonnet` to task YAML when switching.
 **Restore**: After task completion, switch back to default model before next task.
