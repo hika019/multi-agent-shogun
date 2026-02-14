@@ -44,8 +44,9 @@
 setup_file() {
     export PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
     export WATCHER_SCRIPT="$PROJECT_ROOT/scripts/inbox_watcher.sh"
+    export VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python3"
     [ -f "$WATCHER_SCRIPT" ] || return 1
-    python3 -c "import yaml" 2>/dev/null || return 1
+    "$VENV_PYTHON" -c "import yaml" 2>/dev/null || return 1
 }
 
 setup() {
@@ -605,7 +606,7 @@ messages:
     read: false
 YAML
         process_unread event
-        python3 - << "PY" "$INBOX"
+        "$VENV_PYTHON" - << "PY" "$INBOX"
 import sys
 import yaml
 
@@ -653,7 +654,7 @@ messages:
 YAML
         r1=$(enqueue_recovery_task_assigned)
         r2=$(enqueue_recovery_task_assigned)
-        python3 - << "PY" "$INBOX" "$r1" "$r2"
+        "$VENV_PYTHON" - << "PY" "$INBOX" "$r1" "$r2"
 import sys
 import yaml
 
