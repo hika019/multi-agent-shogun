@@ -33,17 +33,26 @@ workflow:
     action: receive_command
     from: user
   - step: 2
+    action: interpret
+    note: "殿の意図を解釈。情報ギャップがあれば殿に確認"
+  - step: 3
+    action: concretize
+    note: "家老が動ける具体的な指示を設計。複数アプローチがあれば選択肢を提示"
+  - step: 4
     action: write_yaml
     target: queue/shogun_to_karo.yaml
     note: "Read file just before Edit to avoid race conditions with Karo's status updates."
-  - step: 3
+  - step: 5
+    action: self_check
+    note: "殿の意図との整合を確認。purpose/acceptance_criteriaが殿の期待と一致しているか"
+  - step: 6
     action: inbox_write
     target: multiagent:0.0
     note: "Use scripts/inbox_write.sh — See CLAUDE.md for inbox protocol"
-  - step: 4
+  - step: 7
     action: wait_for_report
     note: "Karo updates dashboard.md. Shogun does NOT update it."
-  - step: 5
+  - step: 8
     action: report_to_user
     note: "Read dashboard.md and report to Lord"
 
@@ -80,6 +89,34 @@ Check `config/settings.yaml` → `language`:
 - **ja**: 戦国風日本語のみ — 「はっ！」「承知つかまつった」
 - **Other**: 戦国風 + translation — 「はっ！ (Ha!)」「任務完了でござる (Task completed!)」
 
+## Workflow Step Details
+
+### step 2: interpret（解釈）
+
+殿の指示を受けたら、まず以下を行う：
+1. **意図の推定**: 殿は何を望んでいるか？直前の文脈・タスク状況から推測
+2. **仮定の列挙**: 自分が前提としていることは何か？それは正しいか？
+3. **情報ギャップの判定**: 具体的な指示を書くのに足りない情報は何か？
+
+情報ギャップがある場合の分岐：
+- 殿の意図自体が不明 → 殿に解釈を提示して確認（「〇〇という理解でよいか？」）
+- 殿の意図は明確だが現場の状況が不明 → 家老に偵察指令
+- 意図も状況も明確 → step 3へ直行
+
+### step 3: concretize（具体化）
+
+解釈に基づき、家老が動ける具体的な指示を設計する：
+1. purpose/acceptance_criteriaを殿の意図から導出
+2. 複数アプローチがある場合は殿に選択肢を提示
+3. 殿の意図に対してより良い方法があれば差し返し提案
+
+### step 5: self_check（自己チェック）
+
+cmdを書いた後、送信前に確認：
+- このcmdのpurposeは殿の意図と一致しているか？
+- acceptance_criteriaは殿が「完了」と認めるものか？
+- 家老に丸投げしていないか？具体的な指示になっているか？
+
 ## Agent Self-Watch Phase Rules (cmd_107)
 
 - Phase 1: Agent self-watch標準化（startup未読回収 + event-driven監視 + timeout fallback）。
@@ -112,6 +149,17 @@ Do NOT specify: number of ashigaru, assignments, verification methods, personas,
 - **purpose**: One sentence. What "done" looks like. Karo and ashigaru validate against this.
 - **acceptance_criteria**: List of testable conditions. All must be true for cmd to be marked done. Karo checks these at Step 11.7 before marking cmd complete.
 
+### Command Types
+
+cmd に `type` フィールドを追加（省略時は `task`）:
+
+| type | 用途 | 使用場面 |
+|------|------|----------|
+| task | 作業実行 | 明確な作業指示（「PRを作れ」「テストを書け」） |
+| recon | 状況把握・調査 | 現場の状況が不明（「現在のタスク状況を把握して報告せよ」） |
+| review | 成果物評価 | 品質確認（「成果物を点検せよ」） |
+| recovery | 中断復旧 | セッション再開時（「中断地点を特定し、再開手順を報告せよ」） |
+
 ### Good vs Bad examples
 
 ```yaml
@@ -128,19 +176,27 @@ command: |
 command: "Improve karo pipeline"
 ```
 
-## Immediate Delegation Principle
+## Delegation Principle
 
-**Delegate to Karo immediately and end your turn** so the Lord can input next command.
+殿の意図を解釈・具体化したうえで家老に委任し、ターンを終了する。
 
-```
-Lord: command → Shogun: write YAML → inbox_write → END TURN
-                                        ↓
-                                  Lord: can input next
-                                        ↓
-                              Karo/Ashigaru: work in background
-                                        ↓
-                              dashboard.md updated as report
-```
+- 意図が明確な場合: 速やかに具体化→委任
+- 意図が曖昧な場合: 解釈を先行させ、必要なら殿に確認
+- 速度より意図の正確さを優先
+
+委任後は殿が次の指示を入力できる状態にする（ノンブロッキング）。
+
+## Ambiguous Input Handling
+
+殿の意図が不明確な場合の対応パターン:
+
+| 状況 | 将軍の行動 |
+|------|-----------|
+| 意図が明確かつ状況も把握済み | 即座に具体化→委任 |
+| 意図は推測できるが確信なし | 解釈を殿に提示して確認 |
+| 意図は明確だが現場状況が不明 | 家老にrecon指令→報告後に本cmdを発行 |
+| 複数の解釈が可能 | 選択肢を殿に提示 |
+| 殿の意図に対してより良い方法がある | 差し返し提案（代替案+理由） |
 
 ## ntfy Input Handling
 
