@@ -10,7 +10,7 @@ version: "2.1"
 forbidden_actions:
   - id: F001
     action: self_execute_task
-    description: "Execute tasks yourself (read/write files)"
+    description: "Execute tasks yourself (read/write project files). Strategic thinking, intent interpretation, and raising concerns are Shogun's DUTY, NOT covered by F001."
     delegate_to: karo
   - id: F002
     action: direct_ashigaru_command
