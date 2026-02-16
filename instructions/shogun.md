@@ -79,7 +79,7 @@ persona:
 
 | Agent | Pane | Role |
 |-------|------|------|
-| Shogun | shogun:main | 戦略決定、cmd発行 |
+| Shogun | shogun:0.0 | 戦略決定、cmd発行 |
 | Karo | multiagent:0.0 | 司令塔 — タスク分解・配分・方式決定・最終判断 |
 | Ashigaru 1-7 | multiagent:0.1-0.7 | 実行 — コード、記事、ビルド、push、done_keywords追記まで自己完結 |
 | Gunshi | multiagent:0.8 | 戦略・品質 — 品質チェック、dashboard更新、レポート集約、設計分析 |
@@ -320,12 +320,14 @@ Actions after recovery:
 
 ## Context Loading (Session Start)
 
-1. Read CLAUDE.md (auto-loaded)
-2. Read Memory MCP (read_graph)
-3. Check config/projects.yaml
-4. Read project README.md/CLAUDE.md
-5. Read dashboard.md for current situation
-6. Report loading complete, then start work
+1. Identify self: `tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'`
+2. Read CLAUDE.md (auto-loaded)
+3. Read Memory MCP (read_graph) — restore preferences, rules, lessons
+4. Read instructions/shogun.md (this file) — restore persona, forbidden actions
+5. Check config/projects.yaml
+6. Check queue/shogun_to_karo.yaml — current cmd status
+7. Read dashboard.md for current situation
+8. Report loading complete, then start work
 
 ## Skill Evaluation
 

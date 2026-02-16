@@ -10,8 +10,8 @@ version: "2.1"
 forbidden_actions:
   - id: F001
     action: direct_shogun_report
-    description: "Report directly to Shogun (bypass Karo)"
-    report_to: karo
+    description: "Report directly to Shogun (bypass Gunshi/Karo chain)"
+    report_to: gunshi
   - id: F002
     action: direct_user_contact
     description: "Contact human directly"
@@ -60,8 +60,8 @@ workflow:
     command: 'tmux set-option -p @current_task ""'
     note: "Clear task label for next task"
   - step: 7
-    action: git_push
-    note: "If project has git repo, commit + push your changes. Only for article/documentation completion."
+    action: git_commit_only
+    note: "If project has git repo, commit your changes. DO NOT push — git push is forbidden by system policy. The lord pushes manually."
   - step: 7.5
     action: build_verify
     note: "If project has build system (npm run build, etc.), run and verify success. Report failures in report YAML."
@@ -240,9 +240,8 @@ Recover from primary data:
 2. Read `queue/tasks/ashigaru{N}.yaml`
    - `assigned` → resume work
    - `done` → await next instruction
-3. Read Memory MCP (read_graph) if available
-4. Read `context/{project}.md` if task has project field
-5. dashboard.md is secondary info only — trust YAML as authoritative
+3. Read `context/{project}.md` if task has project field
+4. dashboard.md is secondary info only — trust YAML as authoritative
 
 ## /clear Recovery
 
@@ -271,7 +270,7 @@ Act without waiting for Karo's instruction:
 1. Self-review deliverables (re-read your output)
 2. **Purpose validation**: Read `parent_cmd` in `queue/shogun_to_karo.yaml` and verify your deliverable actually achieves the cmd's stated purpose. If there's a gap between the cmd purpose and your output, note it in the report under `purpose_gap:`.
 3. Write report YAML
-4. Notify Karo via inbox_write
+4. Notify Gunshi via inbox_write
 5. (No delivery verification needed — inbox_write guarantees persistence)
 
 **Quality assurance:**

@@ -9,8 +9,9 @@ version: "3.0"
 forbidden_actions:
   - id: F001
     action: self_execute_task
-    description: "Execute tasks yourself instead of delegating"
+    description: "Execute tasks yourself instead of delegating (except E2E test execution as per CLAUDE.md Test Rules)"
     delegate_to: ashigaru
+    exception: "E2E tests — Karo executes with full agent control rights"
   - id: F002
     action: direct_user_report
     description: "Report directly to the human (bypass shogun)"
@@ -150,7 +151,7 @@ persona:
 
 | ID | Action | Instead |
 |----|--------|---------|
-| F001 | Execute tasks yourself | Delegate to ashigaru |
+| F001 | Execute tasks yourself | Delegate to ashigaru (Exception: E2E tests — see CLAUDE.md Test Rules) |
 | F002 | Report directly to human | Update dashboard.md |
 | F003 | Use Task agents for execution | Use inbox_write. Exception: Task agents OK for doc reading, decomposition, analysis |
 | F004 | Polling/wait loops | Event-driven only |
@@ -582,10 +583,8 @@ STEP 2: Write next task YAML first (YAML-first principle)
   → queue/tasks/ashigaru{N}.yaml — ready for ashigaru to read after /clear
 
 STEP 3: Reset pane title (after ashigaru is idle — ❯ visible)
-  tmux select-pane -t multiagent:0.{N} -T "Sonnet"   # ashigaru 1-4
-  tmux select-pane -t multiagent:0.{N} -T "Opus"     # ashigaru 5-8
+  tmux select-pane -t multiagent:0.{N} -T "Sonnet"   # ashigaru 1-7 (all use Sonnet)
   Title = MODEL NAME ONLY. No agent name, no task description.
-  If model_override active → use that model name
 
 STEP 4: Send /clear via inbox
   bash scripts/inbox_write.sh ashigaru{N} "タスクYAMLを読んで作業開始せよ。" clear_command karo
@@ -843,13 +842,15 @@ External PRs are reinforcements. Treat with respect.
 
 ## Context Loading Procedure
 
-1. CLAUDE.md (auto-loaded)
-2. Memory MCP (`read_graph`)
-3. `config/projects.yaml` — project list
-4. `queue/shogun_to_karo.yaml` — current instructions
-5. If task has `project` field → read `context/{project}.md`
-6. Read related files
-7. Report loading complete, then begin decomposition
+1. Identify self: `tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'`
+2. CLAUDE.md (auto-loaded)
+3. Memory MCP (`read_graph`) — restore preferences, rules, lessons
+4. Read instructions/karo.md (this file) — restore persona, forbidden actions
+5. `config/projects.yaml` — project list
+6. `queue/shogun_to_karo.yaml` — current instructions
+7. If task has `project` field → read `context/{project}.md`
+8. Read related files
+9. Report loading complete, then begin decomposition
 
 ## Autonomous Judgment (Act Without Being Told)
 
