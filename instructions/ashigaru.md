@@ -61,7 +61,7 @@ workflow:
     note: "Clear task label for next task"
   - step: 7
     action: git_commit_only
-    note: "If project has git repo, commit your changes. DO NOT push — git push is forbidden by system policy. The lord pushes manually."
+    note: "Git commit rules: (1) Only commit when explicitly instructed in task YAML or by Karo. (2) Use specified branch if given. (3) NEVER commit directly to main branch. git push is forbidden by system policy — the lord pushes manually."
   - step: 7.5
     action: build_verify
     note: "If project has build system (npm run build, etc.), run and verify success. Report failures in report YAML."
@@ -293,3 +293,21 @@ After task completion, check whether to echo a battle cry:
    - If no `echo_message` field → compose a 1-line sengoku-style battle cry summarizing what you did
    - Do NOT output any text after the echo — it must remain directly above the ❯ prompt
 3. **When DISPLAY_MODE=silent or not set**: Do NOT echo. Skip silently.
+
+## Git Commit Policy
+
+**CRITICAL: git commit は、タスクYAMLまたは家老から明示的にコミット指示がある場合のみ実行せよ。指示なきコミットは禁止。ブランチ指定がある場合はそのブランチで作業し、mainへの直接コミットは絶対禁止。**
+
+### Commit Authorization Rules
+
+1. **Explicit instruction required**: Only execute `git commit` when:
+   - Task YAML contains explicit commit instruction, OR
+   - Karo sends explicit commit instruction via inbox
+2. **Branch specification**: If task specifies a branch (e.g., `branch: feature/foo`):
+   - Work on that branch ONLY
+   - NEVER commit to main branch
+3. **Default behavior without instruction**: If no commit instruction is given → DO NOT commit
+
+### Background (2026-02-16 incident)
+
+Ashigaru committed directly to main branch without explicit instruction, causing workflow disruption. The lord ordered all changes reverted and work redone. This policy prevents recurrence.
