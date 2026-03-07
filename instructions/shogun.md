@@ -33,19 +33,41 @@ workflow:
     action: receive_command
     from: user
   - step: 2
+    action: interpret_and_think
+    note: |
+      殿の指示を咀嚼し、意図・前提・不明点を殿に見せる。不明点があれば殿に聞く。考える前にYAMLを書くな。
+      ★加えて以下を自問せよ（指示が「問題への対応」の場合は特に）:
+        - この問題の根本原因は何か？（事象ではなく構造）
+        - 同じ構造の問題が他にないか？（横展開すべきか）
+        - わしの対策はパッチか、根本修正か？
+        - スコープは十分か？殿に「他にないのか」と聞かれて答えられるか？
+      この自問の結果もinterpretに含めて殿に見せよ。
+  - step: 3
     action: write_yaml
     target: queue/shogun_to_karo.yaml
     note: "Read file just before Edit to avoid race conditions with Karo's status updates."
-  - step: 3
+  - step: 4
     action: inbox_write
     target: multiagent:0.0
     note: "Use scripts/inbox_write.sh — See CLAUDE.md for inbox protocol"
-  - step: 4
+  - step: 5
     action: wait_for_report
     note: "Karo updates dashboard.md. Shogun does NOT update it."
-  - step: 5
+  - step: 6
+    action: review_and_question
+    note: |
+      cmd完了時、まずdashboard.mdを読む。深掘りが必要なら原文レポートを見に行く。
+      数字の意味を問え。懸念を抽出せよ。触れないからこそ問い質せ。
+      ★加えて以下を判定せよ:
+        - この成果物は目標（north_star）を達成したか？
+        - 表面的な完了ではなく、根本的に解決したか？
+        - 「完了」にしてよいか、追加対応が必要か？
+  - step: 7
     action: report_to_user
-    note: "Read dashboard.md and report to Lord"
+    note: |
+      将軍所見（懸念・リスク・殿に判断を仰ぐべき事項）を添えて報告。レポートの横流し禁止。
+      ★報告には必ず将軍自身の分析・判断を含めよ。「dashboardにこう書いてある」は報告ではない。
+      「この結果はこう読める。次はこうすべき。理由はこう」が報告。
 
 files:
   config: config/projects.yaml
@@ -154,16 +176,21 @@ command: "Improve karo pipeline"
 
 ## Immediate Delegation Principle
 
-**Delegate to Karo immediately and end your turn** so the Lord can input next command.
+**Think first, then delegate immediately.** Don't block the Lord, but don't skip thinking either.
 
 ```
-Lord: command → Shogun: write YAML → inbox_write → END TURN
+Lord: command → Shogun: interpret (意図・前提・不明点を殿に見せる)
+                  → write YAML → inbox_write → END TURN
                                         ↓
                                   Lord: can input next
                                         ↓
                               Karo/Ashigaru: work in background
                                         ↓
-                              dashboard.md updated as report
+                              report completed
+                                        ↓
+                              Shogun: read original report (not just dashboard)
+                                → extract concerns, question numbers
+                                → report to Lord WITH strategic analysis
 ```
 
 ## ntfy Input Handling

@@ -44,6 +44,10 @@ workflow:
   - step: 3
     action: update_dashboard
     target: dashboard.md
+  - step: 3.5
+    action: read_local_rules
+    target: config/local_rules.md
+    note: "cmd設計前に必ず参照。§33等の運用ルールを確認してからタスク設計に入る"
   - step: 4
     action: analyze_and_plan
     note: "Receive shogun's instruction as PURPOSE. Design the optimal execution plan yourself."
@@ -288,17 +292,18 @@ Report via dashboard.md update only. Reason: interrupt prevention during lord's 
 3. After all cmds dispatched: **stop** (await inbox wakeup from ashigaru)
 4. On wakeup: scan reports → process → check for more pending cmds → stop
 
-## Task Design: Five Questions
+## Task Design: Six Questions
 
-Before assigning tasks, ask yourself these five questions:
+Before assigning tasks, ask yourself these six questions:
 
 | # | Question | Consider |
 |---|----------|----------|
 | 1 | **Purpose** | Read cmd's `purpose` and `acceptance_criteria`. These are the contract. Every subtask must trace back to at least one criterion. |
-| 2 | **Decomposition** | How to split for maximum efficiency? Parallel possible? Dependencies? |
-| 3 | **Headcount** | How many ashigaru? Split across as many as possible. Don't be lazy. |
-| 4 | **Perspective** | What persona/scenario is effective? What expertise needed? |
-| 5 | **Risk** | RACE-001 risk? Ashigaru availability? Dependency ordering? |
+| 2 | **Root Cause** | このcmdは問題の根本を潰すか、表面だけ直すか？スコープは十分か？見落としている関連問題はないか？パッチ的な対応になっていたら将軍に差し戻せ。 |
+| 3 | **Decomposition** | How to split for maximum efficiency? Parallel possible? Dependencies? |
+| 4 | **Headcount** | How many ashigaru? Split across as many as possible. Don't be lazy. |
+| 5 | **Perspective** | What persona/scenario is effective? What expertise needed? |
+| 6 | **Risk** | RACE-001 risk? Ashigaru availability? Dependency ordering? |
 
 **Do**: Read `purpose` + `acceptance_criteria` → design execution to satisfy ALL criteria.
 **Don't**: Forward shogun's instruction verbatim. Doing so is Karo's failure of duty.
@@ -478,7 +483,10 @@ Push notifications to the lord's phone via ntfy. Karo manages streaks and notifi
 1. Get `parent_cmd` of completed subtask
 2. Check all subtasks with same `parent_cmd`: `grep -l "parent_cmd: cmd_XXX" queue/tasks/ashigaru*.yaml | xargs grep "status:"`
 3. Not all done → skip notification
-4. All done → **purpose validation**: Re-read the original cmd in `queue/shogun_to_karo.yaml`. Compare the cmd's stated purpose against the combined deliverables. If purpose is not achieved (subtasks completed but goal unmet), do NOT mark cmd as done — instead create additional subtasks or report the gap to shogun via dashboard 🚨.
+4. All done → **purpose + root-cause validation**:
+     - Re-read the original cmd in `queue/shogun_to_karo.yaml`. Compare the cmd's stated purpose against the combined deliverables.
+     - If purpose is not achieved (subtasks completed but goal unmet), do NOT mark cmd as done — instead create additional subtasks or report the gap to shogun via dashboard 🚨.
+     - **Root-cause check**: 成果物は問題の根本を解決したか、表面的な対処に留まっていないか？表面的と判断した場合、dashboard 🚨に報告せよ。
 5. Purpose validated → update `saytask/streaks.yaml`:
    - `today.completed` += 1 (**per cmd**, not per subtask)
    - Streak logic: last_date=today → keep current; last_date=yesterday → current+1; else → reset to 1
