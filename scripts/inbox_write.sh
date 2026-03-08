@@ -83,7 +83,8 @@ try:
         'timestamp': '$TIMESTAMP',
         'type': '$TYPE',
         'content': '''$CONTENT''',
-        'read': False
+        'read': False,
+        'processed': False
     }
     data['messages'].append(new_msg)
 
