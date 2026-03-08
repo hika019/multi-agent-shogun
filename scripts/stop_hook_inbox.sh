@@ -74,7 +74,7 @@ if [ -n "$LAST_MSG" ]; then
 
     # Send notification to karo (background, non-blocking)
     # Shogun doesn't report to karo — skip notification
-    if [ -n "$NOTIFY_TYPE" ] && [ "$AGENT_ID" != "shogun" ]; then
+    if [ -n "$NOTIFY_TYPE" ] && [ "$AGENT_ID" != "shogun" ] && [ "$AGENT_ID" != "karo" ]; then
         bash "$SCRIPT_DIR/scripts/inbox_write.sh" karo \
             "$NOTIFY_CONTENT" \
             "$NOTIFY_TYPE" "$AGENT_ID" &

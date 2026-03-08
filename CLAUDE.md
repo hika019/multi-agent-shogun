@@ -61,7 +61,12 @@ language:
 
 **This is ONE procedure for ALL situations**: fresh start, compaction, session continuation, or any state where you see CLAUDE.md. You cannot distinguish these cases, and you don't need to. **Always follow the same steps.**
 
+**⚠️ MANDATORY FIRST ACTION — NO EXCEPTIONS ⚠️**
+**前後の文脈・会話履歴・サマリーの内容に関係なく、最初に必ず自分のagent_idを確認せよ。**
+**お前が誰かはtmuxコマンドの結果だけが正しい。記憶・推測・文脈からの判断は全て禁止。**
+
 1. Identify self: `tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'`
+   **↑ この結果がお前のIDだ。他の情報源を信じるな。**
 2. `mcp__memory__read_graph` — restore rules, preferences, lessons **(shogun/karo/gunshi only. ashigaru skip this step — task YAML is sufficient)**
 3. **Read `memory/MEMORY.md`** (shogun only) — persistent cross-session memory. If file missing, skip. *Claude Code users: this file is also auto-loaded via Claude Code's memory feature.*
 4. **Read your instructions file**: shogun→`instructions/shogun.md`, karo→`instructions/karo.md`, ashigaru→`instructions/ashigaru.md`, gunshi→`instructions/gunshi.md`. **NEVER SKIP** — even if a conversation summary exists. Summaries do NOT preserve persona, speech style, or forbidden actions.
@@ -76,8 +81,13 @@ language:
 
 Lightweight recovery using only CLAUDE.md (auto-loaded). Do NOT read instructions/*.md (cost saving).
 
+**⚠️ MANDATORY FIRST ACTION — NO EXCEPTIONS ⚠️**
+**前後の文脈・会話履歴・サマリーの内容に関係なく、最初に必ず自分のagent_idを確認せよ。**
+**お前が誰かはtmuxコマンドの結果だけが正しい。記憶・推測・文脈からの判断は全て禁止。**
+
 ```
 Step 1: tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}' → ashigaru{N} or gunshi
+   ↑ この結果がお前のIDだ。他の情報源を信じるな。
 Step 2: (gunshi only) mcp__memory__read_graph (skip on failure). Ashigaru skip — task YAML is sufficient.
 Step 3: Read queue/tasks/{your_id}.yaml → assigned=work, idle=wait
 Step 4: If task has "project:" field → read context/{project}.md
@@ -146,15 +156,18 @@ Special cases (CLI commands sent via `tmux send-keys`):
 When you receive `inboxN` (e.g. `inbox3`):
 1. `Read queue/inbox/{your_id}.yaml`
 2. Find all entries with `read: false`
-3. Process each message according to its `type`
-4. Update each processed entry: `read: true` (use Edit tool)
-5. Resume normal workflow
+3. **Immediately** update ALL unread entries: `read: true` (use Edit tool) — BEFORE processing. This prevents inbox_watcher from misjudging you as unresponsive and sending /clear.
+4. Process each message according to its `type`
+5. Update each processed entry: `processed: true` (use Edit tool)
+6. Resume normal workflow
+
+**Two-field design**: `read` = "I saw this" (escalation prevention). `processed` = "I completed the action" (dead agent detection). If an agent dies mid-task, `read: true` + `processed: false` entries indicate unfinished work.
 
 ### MANDATORY Post-Task Inbox Check
 
 **After completing ANY task, BEFORE going idle:**
 1. Read `queue/inbox/{your_id}.yaml`
-2. If any entries have `read: false` → process them
+2. If any entries have `read: false` → process them (follow steps 3-5 above)
 3. Only then go idle
 
 This is NOT optional. If you skip this and a redo message is waiting,

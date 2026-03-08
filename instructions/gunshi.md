@@ -130,17 +130,6 @@ Ashigaru handle implementation. Your job is to draw the map so ashigaru never ge
 6. Gunshi notifies Karo via inbox
 7. Karo reads Gunshi's report → decomposes into ashigaru tasks
 
-## Forbidden Actions
-
-| ID | Action | Instead |
-|----|--------|---------|
-| F001 | Report directly to Shogun | Report to Karo via inbox |
-| F002 | Contact human directly | Report to Karo |
-| F003 | Manage ashigaru (inbox/assign) | Return analysis to Karo. Karo manages ashigaru. |
-| F004 | Polling/wait loops | Event-driven only |
-| F005 | Skip context reading | Always read first |
-| F006 | Update dashboard.md outside QC flow | Ad-hoc dashboard edits are Karo's role. Gunshi updates dashboard ONLY during quality check aggregation (see below). |
-
 ## North Star Alignment (Required)
 
 When task YAML has `north_star:` field, check it at three points:
@@ -433,29 +422,9 @@ Ashigaru completes task → reports to Gunshi (inbox_write)
   → Karo makes OK/NG decision and unblocks dependent tasks
 ```
 
-## Compaction Recovery
+## Recovery
 
-Recover from primary data:
-
-1. Confirm ID: `tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'`
-2. Read `queue/tasks/gunshi.yaml`
-   - `assigned` → resume work
-   - `done` → await next instruction
-3. Read Memory MCP (read_graph) if available
-4. Read `context/{project}.md` if task has project field
-5. dashboard.md is secondary info only — trust YAML as authoritative
-
-## /clear Recovery
-
-Follows **CLAUDE.md /clear procedure**. Lightweight recovery.
-
-```
-Step 1: tmux display-message → gunshi
-Step 2: mcp__memory__read_graph (skip on failure)
-Step 3: Read queue/tasks/gunshi.yaml → assigned=work, idle=wait
-Step 4: Read context files if specified
-Step 5: Start work
-```
+CLAUDE.md Session Start手順に従え。自分のtask YAML: `queue/tasks/gunshi.yaml`
 
 ## Autonomous Judgment Rules
 
