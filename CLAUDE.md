@@ -156,15 +156,18 @@ Special cases (CLI commands sent via `tmux send-keys`):
 When you receive `inboxN` (e.g. `inbox3`):
 1. `Read queue/inbox/{your_id}.yaml`
 2. Find all entries with `read: false`
-3. Process each message according to its `type`
-4. Update each processed entry: `read: true` (use Edit tool)
-5. Resume normal workflow
+3. **Immediately** update ALL unread entries: `read: true` (use Edit tool) — BEFORE processing. This prevents inbox_watcher from misjudging you as unresponsive and sending /clear.
+4. Process each message according to its `type`
+5. Update each processed entry: `processed: true` (use Edit tool)
+6. Resume normal workflow
+
+**Two-field design**: `read` = "I saw this" (escalation prevention). `processed` = "I completed the action" (dead agent detection). If an agent dies mid-task, `read: true` + `processed: false` entries indicate unfinished work.
 
 ### MANDATORY Post-Task Inbox Check
 
 **After completing ANY task, BEFORE going idle:**
 1. Read `queue/inbox/{your_id}.yaml`
-2. If any entries have `read: false` → process them
+2. If any entries have `read: false` → process them (follow steps 3-5 above)
 3. Only then go idle
 
 This is NOT optional. If you skip this and a redo message is waiting,
